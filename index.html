@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>我的朋友圈存档</title>
+    
+    <!-- ✨ 手机添加到主屏幕的专属图标配置 (PWA Web Icon) -->
+    <link rel="apple-touch-icon" href="https://i.postimg.cc/bYTZVxFm/c124cb43-bb5f-4463-b268-64ff2572f73e.jpg">
+    <link rel="icon" type="image/jpeg" href="https://i.postimg.cc/bYTZVxFm/c124cb43-bb5f-4463-b268-64ff2572f73e.jpg">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="朋友圈存档">
+
+    <style>
+        :root {
+            --bg-color: #ffffff;         
+            --theme-blue: #7bc2e5;       
+            --theme-blue-light: #f0f7fa; 
+            --text-main: #222222;        
+            --text-sub: #a0a0a0;         
+            --line-color: #f2f2f2;       
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            color: var(--text-main);
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 统一页面容器 */
+        .page {
+            width: 100%;
+            min-height: 100vh;
+            box-sizing: border-box;
+            padding-bottom: 80px;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-color: var(--bg-color);
+        }
+
+        #mainTimelinePage { opacity: 1; transform: translateX(0); z-index: 1; }
+        #personalHistoryPage { opacity: 0; transform: translateX(100%); z-index: 2; }
+
+        body.show-history #mainTimelinePage { opacity: 0; transform: translateX(-100%); }
+        body.show-history #personalHistoryPage { opacity: 1; transform: translateX(0); }
+        
+        body.show-history .publish-fab { display: none !important; }
+
+        /* ================= 顶部封面区 ================= */
+        .header-container {
+            position: relative;
+            margin-bottom: 40px;
+            background-color: var(--bg-color);
+        }
+        .cover-img {
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+            background-color: var(--theme-blue-light);
+        }
+        .user-info {
+            position: absolute;
+            right: 15px;
+            bottom: -20px;
+            display: flex;
+            align-items: center;
+        }
+        .signature {
+            color: var(--text-sub);
+            font-size: 13px;
+            margin-right: 15px;
+            margin-bottom: 15px;
+            text-align: right;
+        }
+        .username {
+            color: #ffffff;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.4);
+            font-size: 16px;
+            font-weight: bold;
+            margin-right: 15px;
+            margin-bottom: 15px;
+        }
+        .avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 8px;
+            border: 3px solid #fff;
+            object-fit: cover;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        /* ================= 朋友圈列表 ================= */
+        .timeline { padding: 0 15px; }
+        .moment-item { display: flex; padding: 18px 0; border-bottom: 1px solid var(--line-color); }
+        .author-avatar { width: 42px; height: 42px; border-radius: 6px; margin-right: 12px; flex-shrink: 0; object-fit: cover; }
+        .content-box { flex-grow: 1; position: relative; }
+        .author-name { color: var(--theme-blue); font-weight: 600; font-size: 15px; margin-bottom: 6px; cursor: pointer; }
+        .moment-text { font-size: 14.5px; line-height: 1.6; color: var(--text-main); margin-bottom: 10px; white-space: pre-wrap; }
+        
+        /* ================= WeChat多图网格 ================= */
+        .image-gallery { display: grid; gap: 5px; margin-bottom: 10px; }
+        .image-gallery.count-1 { grid-template-columns: 1fr; max-width: 60%; }
+        .image-gallery.count-1 .gallery-img { aspect-ratio: unset; max-height: 200px; width: auto; object-fit: contain; border-radius: 4px; }
+        .image-gallery.count-2 { grid-template-columns: repeat(2, 1fr); max-width: 60%; }
+        .image-gallery.count-4 { grid-template-columns: repeat(2, 1fr); max-width: 60%; }
+        .image-gallery.count-3, .image-gallery.count-5, .image-gallery.count-6, 
+        .image-gallery.count-7, .image-gallery.count-8, .image-gallery.count-9 { grid-template-columns: repeat(3, 1fr); max-width: 85%; }
+
+        .gallery-img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 4px; background-color: var(--theme-blue-light); }
+
+        .moment-footer { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--text-sub); margin-top: 10px; position: relative; }
+        
+        /* 微信原生三个点按钮 */
+        .action-btn-dots { 
+            background: var(--theme-blue-light); 
+            color: var(--theme-blue); 
+            padding: 2px 10px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 14px; 
+            letter-spacing: 1px;
+            user-select: none;
+        }
+
+        /* 互动菜单气泡 */
+        .moment-action-pop {
+            position: absolute;
+            right: 45px;
+            top: -6px;
+            background: #4c4c4c;
+            border-radius: 5px;
+            display: none;
+            align-items: center;
+            overflow: hidden;
+            z-index: 50;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .moment-action-pop.show { display: flex; }
+        .pop-btn {
+            color: #fff;
+            padding: 8px 16px;
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .pop-btn:hover { background: #575757; }
+        .pop-divider { width: 1px; height: 14px; background: #3a3a3a; }
+
+        /* ✨ 经典微信原生感评论气泡框展示区 */
+        .comment-box-area {
+            background-color: #f7f7f7;
+            margin-top: 10px;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 13.5px;
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .comment-item-row {
+            color: var(--text-main);
+            word-break: break-all;
+        }
+        .comment-user {
+            color: var(--theme-blue);
+            font-weight: 600;
+        }
+
+        /* ================= 个人历史轴 ================= */
+        .history-nav-bar { padding: 15px; display: flex; align-items: center; color: var(--theme-blue); font-size: 15px; cursor: pointer; font-weight: 500; }
+        .history-list { padding: 15px; }
+        .profile-row { display: flex; margin-bottom: 25px; cursor: pointer; }
+        
+        .profile-date { width: 65px; flex-shrink: 0; font-size: 13px; font-weight: bold; color: var(--text-main); padding-top: 2px; }
+        .profile-date span { font-size: 24px; margin-right: 2px; color: var(--theme-blue); }
+        
+        .profile-media-box { 
+            flex-grow: 1; display: flex; gap: 8px; background-color: #ffffff; 
+            padding: 10px; border-radius: 8px; border: 1px solid var(--line-color);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .profile-row:hover .profile-media-box { border-color: var(--theme-blue); }
+        
+        .profile-img-thumb { width: 65px; height: 65px; object-fit: cover; border-radius: 4px; }
+        .profile-text-summary { font-size: 13px; color: #444444; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+        /* 展开状态的特有样式 */
+        .profile-row.expanded .profile-media-box {
+            flex-direction: column;
+            background-color: #ffffff;
+            border-color: var(--theme-blue);
+            box-shadow: 0 4px 12px rgba(123, 194, 229, 0.15);
+        }
+        .profile-row.expanded .profile-text-summary {
+            display: block;
+            -webkit-line-clamp: unset;
+            overflow: visible;
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: var(--text-main);
+        }
+        .profile-row.expanded .profile-img-container {
+            display: grid;
+            gap: 5px;
+        }
+        .profile-row.expanded .profile-img-container.count-1 { grid-template-columns: 1fr; max-width: 70%; }
+        .profile-row.expanded .profile-img-container.count-1 img { aspect-ratio: unset; max-height: 180px; width: auto; }
+        .profile-row.expanded .profile-img-container.count-2 { grid-template-columns: repeat(2, 1fr); max-width: 70%; }
+        .profile-row.expanded .profile-img-container.count-4 { grid-template-columns: repeat(2, 1fr); max-width: 70%; }
+        .profile-row.expanded .profile-img-container.count-3, .profile-row.expanded .profile-img-container.count-5,
+        .profile-row.expanded .profile-img-container.count-6, .profile-row.expanded .profile-img-container.count-7,
+        .profile-row.expanded .profile-img-container.count-8, .profile-row.expanded .profile-img-container.count-9 { grid-template-columns: repeat(3, 1fr); max-width: 90%; }
+        
+        .profile-row.expanded .profile-img-thumb { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 4px; }
+
+        /* ================= 发布及弹窗方案 ================= */
+        .publish-fab {
+            position: fixed !important; 
+            right: 20px !important; 
+            bottom: 25px !important; 
+            width: 54px !important; 
+            height: 54px !important;
+            background-color: var(--theme-blue) !important; 
+            border-radius: 50% !important;
+            display: flex !important; 
+            justify-content: center !important; 
+            align-items: center !important;
+            box-shadow: 0 4px 16px rgba(123, 194, 229, 0.5) !important; 
+            cursor: pointer !important; 
+            font-size: 22px !important; 
+            color: white !important; 
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            z-index: 999999 !important; 
+            pointer-events: auto !important; 
+        }
+        .publish-fab:active { transform: scale(0.85) !important; background-color: #62b1d6 !important; }
+
+        .popover-menu {
+            position: fixed !important; 
+            right: 25px !important; 
+            bottom: 92px !important; 
+            background-color: #ffffff !important;
+            border-radius: 10px !important; 
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15) !important;
+            display: none; 
+            flex-direction: column !important; 
+            border: 1px solid var(--line-color) !important; 
+            overflow: hidden !important;
+            z-index: 1000000 !important; 
+        }
+        .popover-item { padding: 14px 28px !important; color: #333 !important; font-size: 14px !important; cursor: pointer !important; text-align: center !important; -webkit-user-select: none; }
+        .popover-item:first-child { border-bottom: 1px solid var(--line-color) !important; }
+        .popover-item:hover { background-color: var(--theme-blue-light) !important; color: var(--theme-blue) !important; }
+
+        .modal-overlay { 
+            position: fixed !important; 
+            top:0 !important; left:0 !important; width:100% !important; height:100% !important; 
+            background: rgba(0,0,0,0.3) !important; 
+            display: flex; justify-content: center; align-items: center; 
+            display: none; 
+            backdrop-filter: blur(3px);
+            z-index: 2000000 !important; 
+        }
+        .modal-box { background-color: #ffffff; padding: 22px; border-radius: 12px; width: 85%; max-width: 360px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .modal-box textarea { width: 100%; height: 95px; background-color: #fafafa; border: 1px solid var(--line-color); color: var(--text-main); padding: 12px; box-sizing: border-box; border-radius: 8px; resize: none; font-size: 14px; }
+        .modal-box textarea:focus { outline: none; border-color: var(--theme-blue); background-color: #fff; }
+        .modal-box input[type="file"] { margin-top: 14px; font-size: 13px; color: var(--text-sub); }
+        .modal-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+        .btn { padding: 8px 18px; border-radius: 6px; cursor: pointer; border: none; font-size: 13px; font-weight: 500; }
+        .btn-cancel { background: #f0f0f0; color: #666; }
+        .btn-submit { background: var(--theme-blue); color: white; box-shadow: 0 2px 6px rgba(123, 194, 229, 0.3); }
+
+        /* 💬 评论输入专属弹窗样式 */
+        #commentOverlay .modal-box { max-width: 320px; }
+        #commentOverlay textarea { height: 70px; }
+    </style>
+</head>
+<body>
+
+    <!-- 主主页 -->
+    <div class="page" id="mainTimelinePage">
+        <div class="header-container">
+            <img class="cover-img config-cover" src="" alt="封面">
+            <div class="user-info">
+                <div class="username config-name"></div>
+                <img class="avatar config-avatar" onclick="navigateTo('history')" src="" alt="头像">
+            </div>
+        </div>
+        <div class="timeline" id="timelineList"></div>
+    </div>
+
+    <!-- 历史轴页 -->
+    <div class="page" id="personalHistoryPage">
+        <div class="history-nav-bar" onclick="navigateTo('timeline')">◁ 返回朋友圈</div>
+        <div class="header-container" style="margin-bottom: 20px;">
+            <img class="cover-img config-cover" src="" alt="封面">
+            <div class="user-info">
+                <div class="signature config-sign"></div>
+                <img class="avatar config-avatar" onclick="navigateTo('timeline')" src="" alt="头像">
+            </div>
+        </div>
+        <div class="history-list" id="historyListContainer"></div>
+    </div>
+
+    <!-- 📷 悬浮发布按钮 -->
+    <div class="publish-fab" id="fabBtn">📷</div>
+
+    <!-- 发布选项菜单 -->
+    <div class="popover-menu" id="popoverMenu">
+        <div class="popover-item" id="itemPublishImage">图文</div>
+        <div class="popover-item" id="itemPublishText">文字</div>
+    </div>
+
+    <!-- 动态发布主弹窗 -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <textarea id="postText" placeholder="这一刻的想法..."></textarea>
+            <div id="imageInputContainer">
+                <input type="file" id="postImages" accept="image/*" multiple>
+            </div>
+            <div class="modal-btns">
+                <button class="btn btn-cancel" onclick="closeModal()">取消</button>
+                <button class="btn btn-submit" onclick="submitPost()">发布</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 💬 真正的评论专属输入弹窗 -->
+    <div class="modal-overlay" id="commentOverlay">
+        <div class="modal-box">
+            <textarea id="commentText" placeholder="评论这条朋友圈..."></textarea>
+            <div class="modal-btns">
+                <button class="btn btn-cancel" onclick="closeCommentModal()">取消</button>
+                <button class="btn btn-submit" onclick="submitComment()">提交评论</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // ✨🌸🎨【 专属个人配置衣帽间 】🎨🌸✨
+        // =========================================================================
+        const MY_CONFIG = {
+            username: "Cypressmoor🪽", // 👈 可以在这里任意修改你的昵称哦
+            signature: "兩顆纏繞的心，會走同一條路☆ﾟ.*･｡ﾟ", // 👈 个性签名
+            avatarUrl: "https://i.postimg.cc/hthMtP7p/IMG-6265.jpg", // 👈 头像链接
+            coverUrl: "https://i.postimg.cc/BntNnQ1h/IMG-6264.jpg", // 👈 背景大图
+            
+            // 🚨【重要：配置更新锁】
+            // 如果你修改了上面的个人资料，但手机网页上没有变，请把下面这个版本号随便换个数字（比如 "5.1" 或 "6.0"）
+            // 这样系统就会立马识别并强行刷新你的最新配置！
+            configVersion: "5.0" 
+        };
+
+        let initialData = [
+            {
+                id: 1,
+                date: "2026-06-19", day: "19", month: "6月",
+                text: "测试一下全新的微信九宫格多图排版，现在点击帖子可以原地展开看详情啦！🍽️",
+                images: ["https://picsum.photos/id/1062/300/300", "https://picsum.photos/id/1069/300/300", "https://picsum.photos/id/1025/300/300", "https://picsum.photos/id/1043/300/300"],
+                comments: [
+                    { name: "Yâsamîn 🪽", text: "好好吃的感觉！" }
+                ]
+            },
+            {
+                id: 2,
+                date: "2026-06-16", day: "16", month: "6月",
+                text: "浅蓝加白色真的好清爽，夏天看太舒服了～(๑•̀ㅂ•́)و✧",
+                images: [],
+                comments: []
+            }
+        ];
+
+        let posts = JSON.parse(localStorage.getItem('my_moments_data_v5')) || initialData;
+        let currentPublishType = 'image';
+        let activeCommentPostId = null; // 记录当前正在给哪条动态写评论
+
+        // 强更及应用用户资料设置
+        function applyConfig() {
+            const lastVersion = localStorage.getItem('my_config_version');
+            if (lastVersion !== MY_CONFIG.configVersion) {
+                localStorage.setItem('my_config_version', MY_CONFIG.configVersion);
+                // 刷新全量配置数据
+            }
+            
+            document.querySelectorAll('.config-name').forEach(el => el.innerText = MY_CONFIG.username);
+            document.querySelectorAll('.config-sign').forEach(el => el.innerText = MY_CONFIG.signature);
+            document.querySelectorAll('.config-avatar').forEach(el => el.src = MY_CONFIG.avatarUrl);
+            document.querySelectorAll('.config-cover').forEach(el => el.src = MY_CONFIG.coverUrl);
+        }
+
+        function navigateTo(target) {
+            if (target === 'history') {
+                document.body.classList.add('show-history');
+            } else {
+                document.body.classList.remove('show-history');
+            }
+            closeAllActionPops();
+        }
+
+        function toggleRowExpand(rowElement) {
+            rowElement.classList.toggle('expanded');
+        }
+
+        function closeAllActionPops() {
+            document.querySelectorAll('.moment-action-pop').forEach(pop => pop.classList.remove('show'));
+        }
+
+        function toggleActionPop(e, postId) {
+            e.stopPropagation();
+            const pop = document.getElementById(`pop-${postId}`);
+            const isShow = pop.classList.contains('show');
+            closeAllActionPops();
+            if (!isShow) {
+                pop.classList.add('show');
+            }
+        }
+
+        function deletePost(postId) {
+            if(confirm("确定要删除这条朋友圈存档吗？(๑ó﹏ò๑)")) {
+                posts = posts.filter(post => post.id !== postId);
+                saveAndRender();
+            }
+        }
+
+        // 打开评论弹窗
+        function openCommentModal(postId) {
+            activeCommentPostId = postId;
+            closeAllActionPops();
+            document.getElementById('commentOverlay').style.display = 'flex';
+            document.getElementById('commentText').value = '';
+            document.getElementById('commentText').focus();
+        }
+
+        function closeCommentModal() {
+            document.getElementById('commentOverlay').style.display = 'none';
+            activeCommentPostId = null;
+        }
+
+        // 提交评论
+        function submitComment() {
+            const text = document.getElementById('commentText').value.trim();
+            if(!text) {
+                alert("评论内容不能为空哦～");
+                return;
+            }
+            
+            // 找到对应的那条朋友圈，追加评论
+            posts = posts.map(post => {
+                if(post.id === activeCommentPostId) {
+                    if(!post.comments) post.comments = [];
+                    post.comments.push({
+                        name: MY_CONFIG.username, // 默认使用你配置的当前昵称
+                        text: text
+                    });
+                }
+                return post;
+            });
+
+            saveAndRender();
+            closeCommentModal();
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('my_moments_data_v5', JSON.stringify(posts));
+            renderAll();
+        }
+
+        // ======================== 核心渲染逻辑 ========================
+        function renderAll() {
+            const timelineList = document.getElementById('timelineList');
+            const historyListContainer = document.getElementById('historyListContainer');
+            timelineList.innerHTML = '';
+            historyListContainer.innerHTML = '';
+
+            posts.forEach(post => {
+                // 1. 多图解析
+                let imgHtml = '';
+                if(post.images && post.images.length > 0) {
+                    let countClass = `count-${Math.min(post.images.length, 9)}`;
+                    imgHtml = `<div class="image-gallery ${countClass}">`;
+                    post.images.forEach(img => {
+                        imgHtml += `<img class="gallery-img" src="${img}">`;
+                    });
+                    imgHtml += `</div>`;
+                }
+
+                // 2. 评论列表解析
+                let commentHtml = '';
+                if(post.comments && post.comments.length > 0) {
+                    commentHtml = `<div class="comment-box-area">`;
+                    post.comments.forEach(cmt => {
+                        commentHtml += `
+                            <div class="comment-item-row">
+                                <span class="comment-user">${cmt.name}：</span>${cmt.text}
+                            </div>
+                        `;
+                    });
+                    commentHtml += `</div>`;
+                }
+
+                // 3. 装填主页
+                timelineList.innerHTML += `
+                    <div class="moment-item">
+                        <img class="author-avatar" src="${MY_CONFIG.avatarUrl}">
+                        <div class="content-box">
+                            <div class="author-name" onclick="navigateTo('history')">${MY_CONFIG.username}</div>
+                            <div class="moment-text">${post.text}</div>
+                            ${imgHtml}
+                            <div class="moment-footer">
+                                <span>${post.date}</span>
+                                <div class="action-btn-dots" onclick="toggleActionPop(event, ${post.id})">•••</div>
+                                
+                                <div class="moment-action-pop" id="pop-${post.id}">
+                                    <div class="pop-btn" onclick="openCommentModal(${post.id}); event.stopPropagation();">💬 评论</div>
+                                    <div class="pop-divider"></div>
+                                    <div class="pop-btn" style="color:#ff6b6b;" onclick="deletePost(${post.id}); event.stopPropagation();">🗑️ 删除</div>
+                                </div>
+                            </div>
+                            ${commentHtml}
+                        </div>
+                    </div>
+                `;
+
+                // 4. 装填历史相册页
+                let profileImgHtml = '';
+                let countClass = post.images ? `count-${Math.min(post.images.length, 9)}` : 'count-0';
+                
+                if(post.images && post.images.length > 0) {
+                    profileImgHtml = `<div class="profile-img-container ${countClass}">`;
+                    post.images.forEach(img => {
+                        profileImgHtml += `<img class="profile-img-thumb" src="${img}">`;
+                    });
+                    profileImgHtml += `</div>`;
+                } else {
+                    profileImgHtml = `<div class="profile-text-summary placeholder-text" style="width:65px; color:var(--text-sub); font-size:11px; display:flex; align-items:center;">[纯文字]</div>`;
+                }
+
+                const row = document.createElement('div');
+                row.className = 'profile-row';
+                row.onclick = () => toggleRowExpand(row);
+                row.innerHTML = `
+                    <div class="profile-date"><span>${post.day}</span>${post.month}</div>
+                    <div class="profile-media-box">
+                        <div class="profile-text-summary">${post.text}</div>
+                        ${profileImgHtml}
+                    </div>
+                `;
+                historyListContainer.appendChild(row);
+            });
+        }
+
+        // ======================== 事件响应与触控强化 ========================
+        const fab = document.getElementById('fabBtn');
+        const menu = document.getElementById('popoverMenu');
+        
+        function handleFabClick(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeAllActionPops();
+            menu.style.display = (menu.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        fab.addEventListener('click', handleFabClick);
+        fab.addEventListener('touchstart', handleFabClick, {passive: false});
+
+        document.addEventListener('click', () => { 
+            menu.style.display = 'none'; 
+            closeAllActionPops();
+        });
+
+        function bindMenuItem(id, type) {
+            const el = document.getElementById(id);
+            const action = (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                menu.style.display = 'none';
+                openPublishModal(type);
+            };
+            el.addEventListener('click', action);
+            el.addEventListener('touchstart', action);
+        }
+        bindMenuItem('itemPublishImage', 'image');
+        bindMenuItem('itemPublishText', 'text');
+
+        function openPublishModal(type) {
+            currentPublishType = type;
+            document.getElementById('modalOverlay').style.display = 'flex';
+            document.getElementById('imageInputContainer').style.display = type === 'image' ? 'block' : 'none';
+            document.getElementById('postText').value = '';
+            document.getElementById('postImages').value = '';
+        }
+
+        function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+
+        function submitPost() {
+            const text = document.getElementById('postText').value;
+            const fileInput = document.getElementById('postImages');
+            const now = new Date();
+            
+            let newPost = {
+                id: Date.now(),
+                date: `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`,
+                day: String(now.getDate()).padStart(2,'0'),
+                month: `${now.getMonth()+1}月`,
+                text: text,
+                images: [],
+                comments: []
+            };
+
+            if (currentPublishType === 'image' && fileInput.files.length > 0) {
+                let loadedCount = 0;
+                Array.from(fileInput.files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        newPost.images.push(e.target.result);
+                        loadedCount++;
+                        if(loadedCount === fileInput.files.length) {
+                            posts.unshift(newPost);
+                            saveAndRender();
+                            closeModal();
+                        }
+                    }
+                    reader.readAsDataURL(file);
+                });
+            } else {
+                posts.unshift(newPost);
+                saveAndRender();
+                closeModal();
+            }
+        }
+
+        applyConfig();
+        renderAll();
+    </script>
+</body>
+</html>
