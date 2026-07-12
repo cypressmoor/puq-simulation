@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>我的朋友圈存档</title>
     
-    <!-- ✨ 手机添加到主屏幕的专属图标配置 (PWA Web Icon) -->
     <link rel="apple-touch-icon" href="https://i.postimg.cc/bYTZVxFm/c124cb43-bb5f-4463-b268-64ff2572f73e.jpg">
     <link rel="icon" type="image/jpeg" href="https://i.postimg.cc/bYTZVxFm/c124cb43-bb5f-4463-b268-64ff2572f73e.jpg">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -32,7 +31,6 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* 统一页面容器 */
         .page {
             width: 100%;
             min-height: 100vh;
@@ -78,7 +76,6 @@
             margin-right: 15px;
             margin-bottom: 15px;
             text-align: right;
-            cursor: pointer; /* 提示可点 */
         }
         .username {
             color: #ffffff;
@@ -129,7 +126,6 @@
 
         .moment-footer { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--text-sub); margin-top: 10px; position: relative; }
         
-        /* 微信原生三个点按钮 */
         .action-btn-dots { 
             background: var(--theme-blue-light); 
             color: var(--theme-blue); 
@@ -142,7 +138,6 @@
             user-select: none;
         }
 
-        /* 互动菜单气泡 */
         .moment-action-pop {
             position: absolute;
             right: 45px;
@@ -169,7 +164,6 @@
         .pop-btn:hover { background: #575757; }
         .pop-divider { width: 1px; height: 14px; background: #3a3a3a; }
 
-        /* ✨ 经典微信原生感评论气泡框展示区 */
         .comment-box-area {
             background-color: #f7f7f7;
             margin-top: 10px;
@@ -181,14 +175,8 @@
             flex-direction: column;
             gap: 5px;
         }
-        .comment-item-row {
-            color: var(--text-main);
-            word-break: break-all;
-        }
-        .comment-user {
-            color: var(--theme-blue);
-            font-weight: 600;
-        }
+        .comment-item-row { color: var(--text-main); word-break: break-all; }
+        .comment-user { color: var(--theme-blue); font-weight: 600; }
 
         /* ================= 个人历史轴 ================= */
         .history-nav-bar { padding: 15px; display: flex; align-items: center; color: var(--theme-blue); font-size: 15px; cursor: pointer; font-weight: 500; }
@@ -211,7 +199,6 @@
         .profile-img-thumb { width: 65px; height: 65px; object-fit: cover; border-radius: 4px; }
         .profile-text-summary { font-size: 13px; color: #444444; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; flex-grow: 1; word-break: break-all; }
 
-        /* 展开状态的特有样式 */
         .profile-row.expanded .profile-media-box {
             flex-direction: column;
             background-color: #ffffff;
@@ -226,10 +213,7 @@
             font-size: 14px;
             color: var(--text-main);
         }
-        .profile-row.expanded .profile-img-container {
-            display: grid;
-            gap: 5px;
-        }
+        .profile-row.expanded .profile-img-container { display: grid; gap: 5px; }
         .profile-row.expanded .profile-img-container.count-1 { grid-template-columns: 1fr; max-width: 70%; }
         .profile-row.expanded .profile-img-container.count-1 img { aspect-ratio: unset; max-height: 220px; width: 100%; max-width: 100%; object-fit: contain; }
         .profile-row.expanded .profile-img-container.count-2 { grid-template-columns: repeat(2, 1fr); max-width: 70%; }
@@ -297,18 +281,23 @@
         .btn { padding: 8px 18px; border-radius: 6px; cursor: pointer; border: none; font-size: 13px; font-weight: 500; }
         .btn-cancel { background: #f0f0f0; color: #666; }
         .btn-submit { background: var(--theme-blue); color: white; box-shadow: 0 2px 6px rgba(123, 194, 229, 0.3); }
-        .btn:active { opacity: 0.8; }
 
-        /* 💬 评论输入专属弹窗样式 */
         #commentOverlay .modal-box { max-width: 320px; }
         #commentOverlay textarea { height: 70px; }
 
-        /* 💾 数据管理面板样式 */
-        .backup-panel { margin: 20px 15px; padding: 15px; border: 1px dashed var(--theme-blue); border-radius: 8px; background: var(--theme-blue-light); display: none; }
+        /* 💾 全局浮动备份控制面板 */
+        .backup-panel { 
+            margin: 20px 15px; 
+            padding: 15px; 
+            border: 1px dashed var(--theme-blue); 
+            border-radius: 8px; 
+            background: var(--theme-blue-light); 
+            display: none; 
+        }
         .backup-title { font-size: 14px; font-weight: bold; color: var(--theme-blue); margin-bottom: 10px; }
         .backup-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
         .btn-backup { background: #fff; border: 1px solid var(--theme-blue); color: var(--theme-blue); padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; }
-        .backup-io { width: 100%; height: 60px; font-size: 11px; border: 1px solid #ddd; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: none; }
+        .backup-io { width: 100%; height: 80px; font-size: 11px; border: 1px solid #ddd; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: none; }
     </style>
 </head>
 <body>
@@ -319,12 +308,13 @@
             <img class="cover-img config-cover" src="" alt="封面">
             <div class="user-info">
                 <div class="username config-name"></div>
-                <img class="avatar config-avatar" onclick="navigateTo('history')" src="" alt="头像">
+                <!-- 💡 绑定多点事件：连击头像三次 -->
+                <img class="avatar config-avatar" onclick="handleAvatarClick()" src="" alt="头像">
             </div>
         </div>
         <div class="timeline" id="timelineList"></div>
         
-        <!-- ⚙️ 隐藏备份入口：点击历史轴页面的“签名”或主页底部即可展现 -->
+        <!-- ⚙️ 数据备份面板（移到了主页下方，触发后展现） -->
         <div class="backup-panel" id="backupPanel">
             <div class="backup-title">⚙️ 朋友圈数据备份与恢复面板</div>
             <div class="backup-btns">
@@ -343,9 +333,9 @@
         <div class="header-container" style="margin-bottom: 20px;">
             <img class="cover-img config-cover" src="" alt="封面">
             <div class="user-info">
-                <!-- 点击这里可以悄悄打开/关闭备份面板 -->
-                <div class="signature config-sign" onclick="toggleBackupPanel()"></div>
-                <img class="avatar config-avatar" onclick="navigateTo('timeline')" src="" alt="头像">
+                <div class="signature config-sign"></div>
+                <!-- 💡 绑定多点事件：连击头像三次 -->
+                <img class="avatar config-avatar" onclick="handleAvatarClick()" src="" alt="头像">
             </div>
         </div>
         <div class="history-list" id="historyListContainer"></div>
@@ -387,21 +377,21 @@
 
     <script>
         // =========================================================================
-        // ✨🌸🎨【 专属个人配置衣帽间 】🎨🌸✨
+        // ✨🌸🎨【 个人配置衣帽间 】🎨🌸✨
         // =========================================================================
         const MY_CONFIG = {
             username: "Cypressmoor🪽", 
-            signature: "兩顆纏繞的心，會走同一條路☆ﾟ.*･｡ﾟ (点击可管理备份)", 
+            signature: "兩顆纏繞的心，會走同一條路☆ﾟ.*･｡ﾟ", 
             avatarUrl: "https://i.postimg.cc/hthMtP7p/IMG-6265.jpg", 
             coverUrl: "https://i.postimg.cc/BntNnQ1h/IMG-6264.jpg", 
-            configVersion: "5.5" 
+            configVersion: "5.6" 
         };
 
         let initialData = [
             {
                 id: 1,
                 date: "2026-06-19", day: "19", month: "6月",
-                text: "测试一下全新的微信九宫格多图排版，现在点击帖子可以原地展开看详情啦！🍽️",
+                text: "测试一下全新的微信九宫格多图排版，连续点击右上角头像三次能呼出备份控制台哦！🍽️",
                 images: ["https://picsum.photos/id/1062/300/300", "https://picsum.photos/id/1069/300/300", "https://picsum.photos/id/1025/300/300", "https://picsum.photos/id/1043/300/300"],
                 comments: [{ name: "Yâsamîn 🪽", text: "好好吃的感觉！" }]
             }
@@ -411,11 +401,33 @@
         let currentPublishType = 'image';
         let activeCommentPostId = null;
 
+        // 连击控制变量
+        let avatarClickCount = 0;
+        let avatarClickTimer = null;
+
         function applyConfig() {
             document.querySelectorAll('.config-name').forEach(el => el.innerText = MY_CONFIG.username);
             document.querySelectorAll('.config-sign').forEach(el => el.innerText = MY_CONFIG.signature);
             document.querySelectorAll('.config-avatar').forEach(el => el.src = MY_CONFIG.avatarUrl);
             document.querySelectorAll('.config-cover').forEach(el => el.src = MY_CONFIG.coverUrl);
+        }
+
+        // 智能头像点击：单次跳转，连续三次呼出/隐藏备份面板
+        function handleAvatarClick() {
+            avatarClickCount++;
+            clearTimeout(avatarClickTimer);
+            
+            avatarClickTimer = setTimeout(() => {
+                if (avatarClickCount === 1) {
+                    // 单次点击：切换页面
+                    const isHistory = document.body.classList.contains('show-history');
+                    navigateTo(isHistory ? 'timeline' : 'history');
+                } else if (avatarClickCount >= 3) {
+                    // 三连击：呼出面板
+                    toggleBackupPanel();
+                }
+                avatarClickCount = 0;
+            }, 300);
         }
 
         function navigateTo(target) {
@@ -483,10 +495,11 @@
 
         // ======================== 备份导入导出系统 ========================
         function toggleBackupPanel() {
+            navigateTo('timeline'); // 呼出时强制回主页，方便看底部的面板
             const panel = document.getElementById('backupPanel');
             panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
             if(panel.style.display === 'block') {
-                document.getElementById('backupPanel').scrollIntoView({behavior: 'smooth'});
+                panel.scrollIntoView({behavior: 'smooth'});
             }
         }
 
@@ -584,7 +597,7 @@
                     post.images.forEach(img => { profileImgHtml += `<img class="profile-img-thumb" src="${img}">`; });
                     profileImgHtml += `</div>`;
                 } else {
-                    profileImgHtml = `<div class="profile-text-summary placeholder-text" style="width:65px; color:var(--text-sub); font-size:11px; display:flex; align-items:center; flex-shrink:0;">[纯文字]</div>`;
+                    profileImgHtml = `<div class="profile-text-summary" style="width:65px; color:var(--text-sub); font-size:11px; display:flex; align-items:center; flex-shrink:0;">[纯文字]</div>`;
                 }
 
                 const row = document.createElement('div');
@@ -632,15 +645,21 @@
             document.getElementById('postImages').value = '';
         }
 
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            if(e.target === this) closeModal();
+        });
+        document.getElementById('commentOverlay').addEventListener('click', function(e) {
+            if(e.target === this) closeCommentModal();
+        });
+
         function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
 
-        // ======================== 智能发布识别 ========================
+        // ======================== 发布识别 ========================
         function submitPost() {
             const textInput = document.getElementById('postText').value.trim();
             const fileInput = document.getElementById('postImages');
             const now = new Date();
             
-            // 💡 增强逻辑：自动识别文本框里贴的网络图片链接 (http/https)
             let textUrls = [];
             let cleanText = textInput;
             const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -648,10 +667,9 @@
             
             if (matches) {
                 matches.forEach(url => {
-                    // 判断如果是常见图片后缀或者带图床特征的，就抽离出来作为动态图片展现
                     if (url.match(/\.(jpeg|jpg|gif|png|webp)/i) || url.includes('postimg') || url.includes('picsum')) {
                         textUrls.push(url);
-                        cleanText = cleanText.replace(url, ''); // 从文字里剔除链接，保持美观
+                        cleanText = cleanText.replace(url, '');
                     }
                 });
             }
@@ -671,7 +689,6 @@
                 comments: []
             };
 
-            // 如果本地选了文件上传
             if (currentPublishType === 'image' && fileInput.files && fileInput.files.length > 0) {
                 let loadedCount = 0;
                 const filesArray = Array.from(fileInput.files);
