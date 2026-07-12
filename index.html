@@ -78,6 +78,7 @@
             margin-right: 15px;
             margin-bottom: 15px;
             text-align: right;
+            cursor: pointer; /* 提示可点 */
         }
         .username {
             color: #ffffff;
@@ -108,7 +109,6 @@
         /* ================= WeChat多图网格 ================= */
         .image-gallery { display: grid; gap: 5px; margin-bottom: 10px; }
         
-        /* 🛠️ 关键修复：完美自适应单张大图，彻底防止图片把屏幕撑爆 */
         .image-gallery.count-1 { grid-template-columns: 1fr; max-width: 70%; }
         .image-gallery.count-1 .gallery-img { 
             aspect-ratio: unset; 
@@ -302,6 +302,13 @@
         /* 💬 评论输入专属弹窗样式 */
         #commentOverlay .modal-box { max-width: 320px; }
         #commentOverlay textarea { height: 70px; }
+
+        /* 💾 数据管理面板样式 */
+        .backup-panel { margin: 20px 15px; padding: 15px; border: 1px dashed var(--theme-blue); border-radius: 8px; background: var(--theme-blue-light); display: none; }
+        .backup-title { font-size: 14px; font-weight: bold; color: var(--theme-blue); margin-bottom: 10px; }
+        .backup-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+        .btn-backup { background: #fff; border: 1px solid var(--theme-blue); color: var(--theme-blue); padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+        .backup-io { width: 100%; height: 60px; font-size: 11px; border: 1px solid #ddd; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: none; }
     </style>
 </head>
 <body>
@@ -316,6 +323,18 @@
             </div>
         </div>
         <div class="timeline" id="timelineList"></div>
+        
+        <!-- ⚙️ 隐藏备份入口：点击历史轴页面的“签名”或主页底部即可展现 -->
+        <div class="backup-panel" id="backupPanel">
+            <div class="backup-title">⚙️ 朋友圈数据备份与恢复面板</div>
+            <div class="backup-btns">
+                <button class="btn-backup" onclick="exportData()">📤 导出备份文本</button>
+                <button class="btn-backup" onclick="importData()">📥 导入备份文本</button>
+                <button class="btn-backup" style="color:red; border-color:red;" onclick="clearAllData()">🗑️ 清空本地缓存</button>
+            </div>
+            <textarea class="backup-io" id="backupIO" placeholder="导出后的文本会显示在这里；导入时请把文本粘贴到这里再点导入。"></textarea>
+            <div style="font-size: 11px; color: var(--text-sub); margin-top:5px;">💡 温馨提示：如果多图发布失败，说明图片文件太大了（手机本地限5MB）。建议使用 postimg.cc 等图床，发帖时直接贴图片网络链接更安全、不限容量！</div>
+        </div>
     </div>
 
     <!-- 历史轴页 -->
@@ -324,7 +343,8 @@
         <div class="header-container" style="margin-bottom: 20px;">
             <img class="cover-img config-cover" src="" alt="封面">
             <div class="user-info">
-                <div class="signature config-sign"></div>
+                <!-- 点击这里可以悄悄打开/关闭备份面板 -->
+                <div class="signature config-sign" onclick="toggleBackupPanel()"></div>
                 <img class="avatar config-avatar" onclick="navigateTo('timeline')" src="" alt="头像">
             </div>
         </div>
@@ -343,7 +363,7 @@
     <!-- 动态发布主弹窗 -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal-box">
-            <textarea id="postText" placeholder="这一刻的想法..."></textarea>
+            <textarea id="postText" placeholder="这一刻的想法...（支持直接粘贴网络图片链接，多链接用逗号或换行隔开）"></textarea>
             <div id="imageInputContainer">
                 <input type="file" id="postImages" accept="image/*" multiple>
             </div>
@@ -354,7 +374,7 @@
         </div>
     </div>
 
-    <!-- 💬 真正的评论专属输入弹窗 -->
+    <!-- 💬 评论输入弹窗 -->
     <div class="modal-overlay" id="commentOverlay">
         <div class="modal-box">
             <textarea id="commentText" placeholder="评论这条朋友圈..."></textarea>
@@ -370,13 +390,11 @@
         // ✨🌸🎨【 专属个人配置衣帽间 】🎨🌸✨
         // =========================================================================
         const MY_CONFIG = {
-            username: "Cypressmoor🪽", // 👈 可以在这里任意修改你的昵称哦
-            signature: "兩顆纏繞的心，會走同一條路☆ﾟ.*･｡ﾟ", // 👈 个性签名
-            avatarUrl: "https://i.postimg.cc/hthMtP7p/IMG-6265.jpg", // 👈 头像链接
-            coverUrl: "https://i.postimg.cc/BntNnQ1h/IMG-6264.jpg", // 👈 背景大图
-            
-            // 🚨【重要：配置更新锁】
-            configVersion: "5.2" 
+            username: "Cypressmoor🪽", 
+            signature: "兩顆纏繞的心，會走同一條路☆ﾟ.*･｡ﾟ (点击可管理备份)", 
+            avatarUrl: "https://i.postimg.cc/hthMtP7p/IMG-6265.jpg", 
+            coverUrl: "https://i.postimg.cc/BntNnQ1h/IMG-6264.jpg", 
+            configVersion: "5.5" 
         };
 
         let initialData = [
@@ -385,30 +403,15 @@
                 date: "2026-06-19", day: "19", month: "6月",
                 text: "测试一下全新的微信九宫格多图排版，现在点击帖子可以原地展开看详情啦！🍽️",
                 images: ["https://picsum.photos/id/1062/300/300", "https://picsum.photos/id/1069/300/300", "https://picsum.photos/id/1025/300/300", "https://picsum.photos/id/1043/300/300"],
-                comments: [
-                    { name: "Yâsamîn 🪽", text: "好好吃的感觉！" }
-                ]
-            },
-            {
-                id: 2,
-                date: "2026-06-16", day: "16", month: "6月",
-                text: "浅蓝加白色真的好清爽，夏天看太舒服了～(๑•̀ㅂ•́)و✧",
-                images: [],
-                comments: []
+                comments: [{ name: "Yâsamîn 🪽", text: "好好吃的感觉！" }]
             }
         ];
 
         let posts = JSON.parse(localStorage.getItem('my_moments_data_v5')) || initialData;
         let currentPublishType = 'image';
-        let activeCommentPostId = null; // 记录当前正在给哪条动态写评论
+        let activeCommentPostId = null;
 
-        // 强更及应用用户资料设置
         function applyConfig() {
-            const lastVersion = localStorage.getItem('my_config_version');
-            if (lastVersion !== MY_CONFIG.configVersion) {
-                localStorage.setItem('my_config_version', MY_CONFIG.configVersion);
-            }
-            
             document.querySelectorAll('.config-name').forEach(el => el.innerText = MY_CONFIG.username);
             document.querySelectorAll('.config-sign').forEach(el => el.innerText = MY_CONFIG.signature);
             document.querySelectorAll('.config-avatar').forEach(el => el.src = MY_CONFIG.avatarUrl);
@@ -424,22 +427,15 @@
             closeAllActionPops();
         }
 
-        function toggleRowExpand(rowElement) {
-            rowElement.classList.toggle('expanded');
-        }
-
-        function closeAllActionPops() {
-            document.querySelectorAll('.moment-action-pop').forEach(pop => pop.classList.remove('show'));
-        }
+        function toggleRowExpand(rowElement) { rowElement.classList.toggle('expanded'); }
+        function closeAllActionPops() { document.querySelectorAll('.moment-action-pop').forEach(pop => pop.classList.remove('show')); }
 
         function toggleActionPop(e, postId) {
             e.stopPropagation();
             const pop = document.getElementById(`pop-${postId}`);
             const isShow = pop.classList.contains('show');
             closeAllActionPops();
-            if (!isShow) {
-                pop.classList.add('show');
-            }
+            if (!isShow) pop.classList.add('show');
         }
 
         function deletePost(postId) {
@@ -449,7 +445,6 @@
             }
         }
 
-        // 打开评论弹窗
         function openCommentModal(postId) {
             activeCommentPostId = postId;
             closeAllActionPops();
@@ -463,32 +458,75 @@
             activeCommentPostId = null;
         }
 
-        // 提交评论
         function submitComment() {
             const text = document.getElementById('commentText').value.trim();
-            if(!text) {
-                alert("评论内容不能为空哦～");
-                return;
-            }
-            
+            if(!text) return;
             posts = posts.map(post => {
                 if(post.id === activeCommentPostId) {
                     if(!post.comments) post.comments = [];
-                    post.comments.push({
-                        name: MY_CONFIG.username,
-                        text: text
-                    });
+                    post.comments.push({ name: MY_CONFIG.username, text: text });
                 }
                 return post;
             });
-
             saveAndRender();
             closeCommentModal();
         }
 
         function saveAndRender() {
-            localStorage.setItem('my_moments_data_v5', JSON.stringify(posts));
-            renderAll();
+            try {
+                localStorage.setItem('my_moments_data_v5', JSON.stringify(posts));
+                renderAll();
+            } catch (e) {
+                alert("❌ 发布失败：图片文件体积太大，超出了手机本地存储限制！\n\n💡 建议方案：多图请先上传到图床，然后将图片链接直接粘贴在输入框内发布。");
+            }
+        }
+
+        // ======================== 备份导入导出系统 ========================
+        function toggleBackupPanel() {
+            const panel = document.getElementById('backupPanel');
+            panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
+            if(panel.style.display === 'block') {
+                document.getElementById('backupPanel').scrollIntoView({behavior: 'smooth'});
+            }
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(posts);
+            document.getElementById('backupIO').value = dataStr;
+            document.getElementById('backupIO').select();
+            navigator.clipboard.writeText(dataStr).then(() => {
+                alert("🌸 数据已成功复制到剪贴板！请找个地方（比如微信收藏或备忘录）粘贴保存好。下次代码更新时拿它恢复即可！");
+            }).catch(() => {
+                alert("复制失败，请手动长按下方全选框内的文本进行复制备份。");
+            });
+        }
+
+        function importData() {
+            const inputData = document.getElementById('backupIO').value.trim();
+            if(!inputData) {
+                alert("请先将备份的文本粘贴进输入框内！");
+                return;
+            }
+            try {
+                const parsed = JSON.parse(inputData);
+                if(Array.isArray(parsed)) {
+                    posts = parsed;
+                    saveAndRender();
+                    alert("✨ 数据成功导入！历史朋友圈已全部完美恢复～");
+                } else {
+                    alert("格式不正确，导入的文件似乎不是有效的朋友圈数据。");
+                }
+            } catch(e) {
+                alert("解析失败，请确保复制进来的文本完整无缺。");
+            }
+        }
+
+        function clearAllData() {
+            if(confirm("警告：这将清空所有手机上的朋友圈，不可逆！确定吗？")) {
+                localStorage.removeItem('my_moments_data_v5');
+                posts = initialData;
+                renderAll();
+            }
         }
 
         // ======================== 核心渲染逻辑 ========================
@@ -499,7 +537,6 @@
             historyListContainer.innerHTML = '';
 
             posts.forEach(post => {
-                // 1. 多图解析
                 let imgHtml = '';
                 if(post.images && post.images.length > 0) {
                     let countClass = `count-${Math.min(post.images.length, 9)}`;
@@ -510,21 +547,15 @@
                     imgHtml += `</div>`;
                 }
 
-                // 2. 评论列表解析
                 let commentHtml = '';
                 if(post.comments && post.comments.length > 0) {
                     commentHtml = `<div class="comment-box-area">`;
                     post.comments.forEach(cmt => {
-                        commentHtml += `
-                            <div class="comment-item-row">
-                                <span class="comment-user">${cmt.name}：</span>${cmt.text}
-                            </div>
-                        `;
+                        commentHtml += `<div class="comment-item-row"><span class="comment-user">${cmt.name}：</span>${cmt.text}</div>`;
                     });
                     commentHtml += `</div>`;
                 }
 
-                // 3. 装填主页
                 timelineList.innerHTML += `
                     <div class="moment-item">
                         <img class="author-avatar" src="${MY_CONFIG.avatarUrl}">
@@ -535,7 +566,6 @@
                             <div class="moment-footer">
                                 <span>${post.date}</span>
                                 <div class="action-btn-dots" onclick="toggleActionPop(event, ${post.id})">•••</div>
-                                
                                 <div class="moment-action-pop" id="pop-${post.id}">
                                     <div class="pop-btn" onclick="openCommentModal(${post.id}); event.stopPropagation();">💬 评论</div>
                                     <div class="pop-divider"></div>
@@ -547,15 +577,11 @@
                     </div>
                 `;
 
-                // 4. 装填历史相册页
                 let profileImgHtml = '';
                 let countClass = post.images ? `count-${Math.min(post.images.length, 9)}` : 'count-0';
-                
                 if(post.images && post.images.length > 0) {
                     profileImgHtml = `<div class="profile-img-container ${countClass}">`;
-                    post.images.forEach(img => {
-                        profileImgHtml += `<img class="profile-img-thumb" src="${img}">`;
-                    });
+                    post.images.forEach(img => { profileImgHtml += `<img class="profile-img-thumb" src="${img}">`; });
                     profileImgHtml += `</div>`;
                 } else {
                     profileImgHtml = `<div class="profile-text-summary placeholder-text" style="width:65px; color:var(--text-sub); font-size:11px; display:flex; align-items:center; flex-shrink:0;">[纯文字]</div>`;
@@ -575,33 +601,23 @@
             });
         }
 
-        // ======================== 事件响应与触控强化 ========================
+        // ======================== 事件响应 ========================
         const fab = document.getElementById('fabBtn');
         const menu = document.getElementById('popoverMenu');
         
         function handleFabClick(e) {
-            e.preventDefault();
-            e.stopPropagation();
+            e.preventDefault(); e.stopPropagation();
             closeAllActionPops();
             menu.style.display = (menu.style.display === 'flex') ? 'none' : 'flex';
         }
-
         fab.addEventListener('click', handleFabClick);
         fab.addEventListener('touchstart', handleFabClick, {passive: false});
 
-        document.addEventListener('click', () => { 
-            menu.style.display = 'none'; 
-            closeAllActionPops();
-        });
+        document.addEventListener('click', () => { menu.style.display = 'none'; closeAllActionPops(); });
 
         function bindMenuItem(id, type) {
             const el = document.getElementById(id);
-            const action = (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                menu.style.display = 'none';
-                openPublishModal(type);
-            };
+            const action = (e) => { e.stopPropagation(); e.preventDefault(); menu.style.display = 'none'; openPublishModal(type); };
             el.addEventListener('click', action);
             el.addEventListener('touchstart', action);
         }
@@ -618,13 +634,29 @@
 
         function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
 
-        // 🛠️ 关键修复：重构发布逻辑，确保不管有没有选图、选了几张图都能无障碍成功发布
+        // ======================== 智能发布识别 ========================
         function submitPost() {
-            const text = document.getElementById('postText').value.trim();
+            const textInput = document.getElementById('postText').value.trim();
             const fileInput = document.getElementById('postImages');
             const now = new Date();
             
-            if (!text && (currentPublishType === 'text' || (currentPublishType === 'image' && fileInput.files.length === 0))) {
+            // 💡 增强逻辑：自动识别文本框里贴的网络图片链接 (http/https)
+            let textUrls = [];
+            let cleanText = textInput;
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            const matches = textInput.match(urlRegex);
+            
+            if (matches) {
+                matches.forEach(url => {
+                    // 判断如果是常见图片后缀或者带图床特征的，就抽离出来作为动态图片展现
+                    if (url.match(/\.(jpeg|jpg|gif|png|webp)/i) || url.includes('postimg') || url.includes('picsum')) {
+                        textUrls.push(url);
+                        cleanText = cleanText.replace(url, ''); // 从文字里剔除链接，保持美观
+                    }
+                });
+            }
+
+            if (!textInput && (currentPublishType === 'text' || (currentPublishType === 'image' && fileInput.files.length === 0))) {
                 alert("总得写点什么或者发张图吧～");
                 return;
             }
@@ -634,12 +666,12 @@
                 date: `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`,
                 day: String(now.getDate()).padStart(2,'0'),
                 month: `${now.getMonth()+1}月`,
-                text: text,
-                images: [],
+                text: cleanText.trim() || textInput,
+                images: textUrls,
                 comments: []
             };
 
-            // 如果选择了图文模式，并且用户确实选了图片文件
+            // 如果本地选了文件上传
             if (currentPublishType === 'image' && fileInput.files && fileInput.files.length > 0) {
                 let loadedCount = 0;
                 const filesArray = Array.from(fileInput.files);
@@ -666,7 +698,6 @@
                     reader.readAsDataURL(file);
                 });
             } else {
-                // 纯文字模式，或者图文模式但未选图的保底逻辑，直接发布
                 posts.unshift(newPost);
                 saveAndRender();
                 closeModal();
