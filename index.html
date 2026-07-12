@@ -101,14 +101,25 @@
         .timeline { padding: 0 15px; }
         .moment-item { display: flex; padding: 18px 0; border-bottom: 1px solid var(--line-color); }
         .author-avatar { width: 42px; height: 42px; border-radius: 6px; margin-right: 12px; flex-shrink: 0; object-fit: cover; }
-        .content-box { flex-grow: 1; position: relative; }
+        .content-box { flex-grow: 1; position: relative; max-width: calc(100% - 54px); }
         .author-name { color: var(--theme-blue); font-weight: 600; font-size: 15px; margin-bottom: 6px; cursor: pointer; }
         .moment-text { font-size: 14.5px; line-height: 1.6; color: var(--text-main); margin-bottom: 10px; white-space: pre-wrap; }
         
         /* ================= WeChat多图网格 ================= */
         .image-gallery { display: grid; gap: 5px; margin-bottom: 10px; }
-        .image-gallery.count-1 { grid-template-columns: 1fr; max-width: 60%; }
-        .image-gallery.count-1 .gallery-img { aspect-ratio: unset; max-height: 200px; width: auto; object-fit: contain; border-radius: 4px; }
+        
+        /* 🛠️ 关键修复：完美自适应单张大图，彻底防止图片把屏幕撑爆 */
+        .image-gallery.count-1 { grid-template-columns: 1fr; max-width: 70%; }
+        .image-gallery.count-1 .gallery-img { 
+            aspect-ratio: unset; 
+            max-height: 260px; 
+            width: 100%; 
+            max-width: 100%; 
+            object-fit: contain; 
+            border-radius: 4px; 
+            display: block;
+        }
+        
         .image-gallery.count-2 { grid-template-columns: repeat(2, 1fr); max-width: 60%; }
         .image-gallery.count-4 { grid-template-columns: repeat(2, 1fr); max-width: 60%; }
         .image-gallery.count-3, .image-gallery.count-5, .image-gallery.count-6, 
@@ -192,11 +203,13 @@
             padding: 10px; border-radius: 8px; border: 1px solid var(--line-color);
             box-shadow: 0 2px 6px rgba(0,0,0,0.02);
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            max-width: calc(100% - 65px);
+            box-sizing: border-box;
         }
         .profile-row:hover .profile-media-box { border-color: var(--theme-blue); }
         
         .profile-img-thumb { width: 65px; height: 65px; object-fit: cover; border-radius: 4px; }
-        .profile-text-summary { font-size: 13px; color: #444444; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .profile-text-summary { font-size: 13px; color: #444444; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; flex-grow: 1; word-break: break-all; }
 
         /* 展开状态的特有样式 */
         .profile-row.expanded .profile-media-box {
@@ -218,7 +231,7 @@
             gap: 5px;
         }
         .profile-row.expanded .profile-img-container.count-1 { grid-template-columns: 1fr; max-width: 70%; }
-        .profile-row.expanded .profile-img-container.count-1 img { aspect-ratio: unset; max-height: 180px; width: auto; }
+        .profile-row.expanded .profile-img-container.count-1 img { aspect-ratio: unset; max-height: 220px; width: 100%; max-width: 100%; object-fit: contain; }
         .profile-row.expanded .profile-img-container.count-2 { grid-template-columns: repeat(2, 1fr); max-width: 70%; }
         .profile-row.expanded .profile-img-container.count-4 { grid-template-columns: repeat(2, 1fr); max-width: 70%; }
         .profile-row.expanded .profile-img-container.count-3, .profile-row.expanded .profile-img-container.count-5,
@@ -284,6 +297,7 @@
         .btn { padding: 8px 18px; border-radius: 6px; cursor: pointer; border: none; font-size: 13px; font-weight: 500; }
         .btn-cancel { background: #f0f0f0; color: #666; }
         .btn-submit { background: var(--theme-blue); color: white; box-shadow: 0 2px 6px rgba(123, 194, 229, 0.3); }
+        .btn:active { opacity: 0.8; }
 
         /* 💬 评论输入专属弹窗样式 */
         #commentOverlay .modal-box { max-width: 320px; }
@@ -362,9 +376,7 @@
             coverUrl: "https://i.postimg.cc/BntNnQ1h/IMG-6264.jpg", // 👈 背景大图
             
             // 🚨【重要：配置更新锁】
-            // 如果你修改了上面的个人资料，但手机网页上没有变，请把下面这个版本号随便换个数字（比如 "5.1" 或 "6.0"）
-            // 这样系统就会立马识别并强行刷新你的最新配置！
-            configVersion: "5.0" 
+            configVersion: "5.2" 
         };
 
         let initialData = [
@@ -395,7 +407,6 @@
             const lastVersion = localStorage.getItem('my_config_version');
             if (lastVersion !== MY_CONFIG.configVersion) {
                 localStorage.setItem('my_config_version', MY_CONFIG.configVersion);
-                // 刷新全量配置数据
             }
             
             document.querySelectorAll('.config-name').forEach(el => el.innerText = MY_CONFIG.username);
@@ -460,12 +471,11 @@
                 return;
             }
             
-            // 找到对应的那条朋友圈，追加评论
             posts = posts.map(post => {
                 if(post.id === activeCommentPostId) {
                     if(!post.comments) post.comments = [];
                     post.comments.push({
-                        name: MY_CONFIG.username, // 默认使用你配置的当前昵称
+                        name: MY_CONFIG.username,
                         text: text
                     });
                 }
@@ -548,7 +558,7 @@
                     });
                     profileImgHtml += `</div>`;
                 } else {
-                    profileImgHtml = `<div class="profile-text-summary placeholder-text" style="width:65px; color:var(--text-sub); font-size:11px; display:flex; align-items:center;">[纯文字]</div>`;
+                    profileImgHtml = `<div class="profile-text-summary placeholder-text" style="width:65px; color:var(--text-sub); font-size:11px; display:flex; align-items:center; flex-shrink:0;">[纯文字]</div>`;
                 }
 
                 const row = document.createElement('div');
@@ -608,10 +618,16 @@
 
         function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
 
+        // 🛠️ 关键修复：重构发布逻辑，确保不管有没有选图、选了几张图都能无障碍成功发布
         function submitPost() {
-            const text = document.getElementById('postText').value;
+            const text = document.getElementById('postText').value.trim();
             const fileInput = document.getElementById('postImages');
             const now = new Date();
+            
+            if (!text && (currentPublishType === 'text' || (currentPublishType === 'image' && fileInput.files.length === 0))) {
+                alert("总得写点什么或者发张图吧～");
+                return;
+            }
             
             let newPost = {
                 id: Date.now(),
@@ -623,22 +639,34 @@
                 comments: []
             };
 
-            if (currentPublishType === 'image' && fileInput.files.length > 0) {
+            // 如果选择了图文模式，并且用户确实选了图片文件
+            if (currentPublishType === 'image' && fileInput.files && fileInput.files.length > 0) {
                 let loadedCount = 0;
-                Array.from(fileInput.files).forEach(file => {
+                const filesArray = Array.from(fileInput.files);
+                
+                filesArray.forEach(file => {
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         newPost.images.push(e.target.result);
                         loadedCount++;
-                        if(loadedCount === fileInput.files.length) {
+                        if(loadedCount === filesArray.length) {
                             posts.unshift(newPost);
                             saveAndRender();
                             closeModal();
                         }
                     }
+                    reader.onerror = function() {
+                        loadedCount++;
+                        if(loadedCount === filesArray.length) {
+                            posts.unshift(newPost);
+                            saveAndRender();
+                            closeModal();
+                        }
+                    };
                     reader.readAsDataURL(file);
                 });
             } else {
+                // 纯文字模式，或者图文模式但未选图的保底逻辑，直接发布
                 posts.unshift(newPost);
                 saveAndRender();
                 closeModal();
