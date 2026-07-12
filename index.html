@@ -2,7 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 1. 严格限制缩放 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
     <title>我的朋友圈存档</title>
     
     <link rel="apple-touch-icon" href="https://i.postimg.cc/bYTZVxFm/c124cb43-bb5f-4463-b268-64ff2572f73e.jpg">
@@ -19,6 +20,12 @@
             --text-main: #222222;        
             --text-sub: #a0a0a0;         
             --line-color: #f2f2f2;       
+        }
+
+        /* 2. 锁定双击放大相关的全局样式 */
+        html, body {
+            touch-action: manipulation;
+            -disabled-setup-webkit-text-size-adjust: 100%;
         }
 
         body {
@@ -115,6 +122,7 @@
             object-fit: contain; 
             border-radius: 4px; 
             display: block;
+            cursor: pointer;
         }
         
         .image-gallery.count-2 { grid-template-columns: repeat(2, 1fr); max-width: 60%; }
@@ -122,7 +130,7 @@
         .image-gallery.count-3, .image-gallery.count-5, .image-gallery.count-6, 
         .image-gallery.count-7, .image-gallery.count-8, .image-gallery.count-9 { grid-template-columns: repeat(3, 1fr); max-width: 85%; }
 
-        .gallery-img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 4px; background-color: var(--theme-blue-light); }
+        .gallery-img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 4px; background-color: var(--theme-blue-light); cursor: pointer; }
 
         .moment-footer { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--text-sub); margin-top: 10px; position: relative; }
         
@@ -196,7 +204,7 @@
         }
         .profile-row:hover .profile-media-box { border-color: var(--theme-blue); }
         
-        .profile-img-thumb { width: 65px; height: 65px; object-fit: cover; border-radius: 4px; }
+        .profile-img-thumb { width: 65px; height: 65px; object-fit: cover; border-radius: 4px; cursor: pointer; }
         .profile-text-summary { font-size: 13px; color: #444444; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; flex-grow: 1; word-break: break-all; }
 
         .profile-row.expanded .profile-media-box {
@@ -247,6 +255,7 @@
         }
         .publish-fab:active { transform: scale(0.85) !important; background-color: #62b1d6 !important; }
 
+        /* 相机选项菜单 */
         .popover-menu {
             position: fixed !important; 
             right: 25px !important; 
@@ -260,8 +269,8 @@
             overflow: hidden !important;
             z-index: 1000000 !important; 
         }
-        .popover-item { padding: 14px 28px !important; color: #333 !important; font-size: 14px !important; cursor: pointer !important; text-align: center !important; -webkit-user-select: none; }
-        .popover-item:first-child { border-bottom: 1px solid var(--line-color) !important; }
+        .popover-item { padding: 14px 24px !important; color: #333 !important; font-size: 14px !important; cursor: pointer !important; text-align: center !important; -webkit-user-select: none; border-bottom: 1px solid var(--line-color) !important; }
+        .popover-item:last-child { border-bottom: none !important; }
         .popover-item:hover { background-color: var(--theme-blue-light) !important; color: var(--theme-blue) !important; }
 
         .modal-overlay { 
@@ -298,6 +307,23 @@
         .backup-btns { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
         .btn-backup { background: #fff; border: 1px solid var(--theme-blue); color: var(--theme-blue); padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; }
         .backup-io { width: 100%; height: 80px; font-size: 11px; border: 1px solid #ddd; border-radius: 4px; padding: 5px; box-sizing: border-box; resize: none; }
+
+        /* 🔍 全屏大图查看层样式 */
+        .viewer-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999999;
+        }
+        .viewer-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            transition: transform 0.2s ease;
+        }
     </style>
 </head>
 <body>
@@ -308,13 +334,12 @@
             <img class="cover-img config-cover" src="" alt="封面">
             <div class="user-info">
                 <div class="username config-name"></div>
-                <!-- 💡 绑定多点事件：连击头像三次 -->
-                <img class="avatar config-avatar" onclick="handleAvatarClick()" src="" alt="头像">
+                <img class="avatar config-avatar" onclick="navigateTo('history')" src="" alt="头像">
             </div>
         </div>
         <div class="timeline" id="timelineList"></div>
         
-        <!-- ⚙️ 数据备份面板（移到了主页下方，触发后展现） -->
+        <!-- 数据备份面板 -->
         <div class="backup-panel" id="backupPanel">
             <div class="backup-title">⚙️ 朋友圈数据备份与恢复面板</div>
             <div class="backup-btns">
@@ -334,8 +359,7 @@
             <img class="cover-img config-cover" src="" alt="封面">
             <div class="user-info">
                 <div class="signature config-sign"></div>
-                <!-- 💡 绑定多点事件：连击头像三次 -->
-                <img class="avatar config-avatar" onclick="handleAvatarClick()" src="" alt="头像">
+                <img class="avatar config-avatar" onclick="navigateTo('timeline')" src="" alt="头像">
             </div>
         </div>
         <div class="history-list" id="historyListContainer"></div>
@@ -344,10 +368,11 @@
     <!-- 📷 悬浮发布按钮 -->
     <div class="publish-fab" id="fabBtn">📷</div>
 
-    <!-- 发布选项菜单 -->
+    <!-- 发布选项菜单：新增了【⚙️ 数据管理】 -->
     <div class="popover-menu" id="popoverMenu">
         <div class="popover-item" id="itemPublishImage">图文</div>
         <div class="popover-item" id="itemPublishText">文字</div>
+        <div class="popover-item" id="itemToggleBackup" style="color: var(--theme-blue); font-weight: bold;">⚙️ 数据管理</div>
     </div>
 
     <!-- 动态发布主弹窗 -->
@@ -375,6 +400,11 @@
         </div>
     </div>
 
+    <!-- 🔍 全屏大图查看组件 -->
+    <div class="viewer-overlay" id="viewerOverlay" onclick="closeImageViewer()">
+        <img class="viewer-img" id="viewerImg" src="" alt="大图预览">
+    </div>
+
     <script>
         // =========================================================================
         // ✨🌸🎨【 个人配置衣帽间 】🎨🌸✨
@@ -384,14 +414,14 @@
             signature: "兩顆纏繞的心，會走同一條路☆ﾟ.*･｡ﾟ", 
             avatarUrl: "https://i.postimg.cc/hthMtP7p/IMG-6265.jpg", 
             coverUrl: "https://i.postimg.cc/BntNnQ1h/IMG-6264.jpg", 
-            configVersion: "5.6" 
+            configVersion: "5.7" 
         };
 
         let initialData = [
             {
                 id: 1,
                 date: "2026-06-19", day: "19", month: "6月",
-                text: "测试一下全新的微信九宫格多图排版，连续点击右上角头像三次能呼出备份控制台哦！🍽️",
+                text: "测试一下全新的微信九宫格多图排版，现在点击图片可以随时看大图啦！点击相机还有新功能哦～🍽️",
                 images: ["https://picsum.photos/id/1062/300/300", "https://picsum.photos/id/1069/300/300", "https://picsum.photos/id/1025/300/300", "https://picsum.photos/id/1043/300/300"],
                 comments: [{ name: "Yâsamîn 🪽", text: "好好吃的感觉！" }]
             }
@@ -401,10 +431,6 @@
         let currentPublishType = 'image';
         let activeCommentPostId = null;
 
-        // 连击控制变量
-        let avatarClickCount = 0;
-        let avatarClickTimer = null;
-
         function applyConfig() {
             document.querySelectorAll('.config-name').forEach(el => el.innerText = MY_CONFIG.username);
             document.querySelectorAll('.config-sign').forEach(el => el.innerText = MY_CONFIG.signature);
@@ -412,22 +438,28 @@
             document.querySelectorAll('.config-cover').forEach(el => el.src = MY_CONFIG.coverUrl);
         }
 
-        // 智能头像点击：单次跳转，连续三次呼出/隐藏备份面板
-        function handleAvatarClick() {
-            avatarClickCount++;
-            clearTimeout(avatarClickTimer);
-            
-            avatarClickTimer = setTimeout(() => {
-                if (avatarClickCount === 1) {
-                    // 单次点击：切换页面
-                    const isHistory = document.body.classList.contains('show-history');
-                    navigateTo(isHistory ? 'timeline' : 'history');
-                } else if (avatarClickCount >= 3) {
-                    // 三连击：呼出面板
-                    toggleBackupPanel();
-                }
-                avatarClickCount = 0;
-            }, 300);
+        // 3. 锁定双击放大的 JS 补丁逻辑
+        document.addEventListener('touchstart', function (event) {
+            if (event.touches.length > 1) { event.preventDefault(); }
+        }, { passive: false });
+        
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            let now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) { event.preventDefault(); }
+            lastTouchEnd = now;
+        }, false);
+
+        // 🔍 打开大图查看器
+        function openImageViewer(src) {
+            const viewer = document.getElementById('viewerOverlay');
+            const img = document.getElementById('viewerImg');
+            img.src = src;
+            viewer.style.display = 'flex';
+        }
+
+        function closeImageViewer() {
+            document.getElementById('viewerOverlay').style.display = 'none';
         }
 
         function navigateTo(target) {
@@ -439,7 +471,11 @@
             closeAllActionPops();
         }
 
-        function toggleRowExpand(rowElement) { rowElement.classList.toggle('expanded'); }
+        function toggleRowExpand(rowElement, event) { 
+            // 如果点到的是图片，阻止展开/折叠，优先去看大图
+            if (event && event.target.tagName === 'IMG') return;
+            rowElement.classList.toggle('expanded'); 
+        }
         function closeAllActionPops() { document.querySelectorAll('.moment-action-pop').forEach(pop => pop.classList.remove('show')); }
 
         function toggleActionPop(e, postId) {
@@ -495,7 +531,7 @@
 
         // ======================== 备份导入导出系统 ========================
         function toggleBackupPanel() {
-            navigateTo('timeline'); // 呼出时强制回主页，方便看底部的面板
+            navigateTo('timeline'); 
             const panel = document.getElementById('backupPanel');
             panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
             if(panel.style.display === 'block') {
@@ -508,7 +544,7 @@
             document.getElementById('backupIO').value = dataStr;
             document.getElementById('backupIO').select();
             navigator.clipboard.writeText(dataStr).then(() => {
-                alert("🌸 数据已成功复制到剪贴板！请找个地方（比如微信收藏或备忘录）粘贴保存好。下次代码更新时拿它恢复即可！");
+                alert("🌸 数据已成功复制到剪贴板！请找个地方粘贴保存好。");
             }).catch(() => {
                 alert("复制失败，请手动长按下方全选框内的文本进行复制备份。");
             });
@@ -555,7 +591,8 @@
                     let countClass = `count-${Math.min(post.images.length, 9)}`;
                     imgHtml = `<div class="image-gallery ${countClass}">`;
                     post.images.forEach(img => {
-                        imgHtml += `<img class="gallery-img" src="${img}">`;
+                        // 💡 注入点击查看大图事件
+                        imgHtml += `<img class="gallery-img" src="${img}" onclick="openImageViewer('${img}'); event.stopPropagation();">`;
                     });
                     imgHtml += `</div>`;
                 }
@@ -594,7 +631,10 @@
                 let countClass = post.images ? `count-${Math.min(post.images.length, 9)}` : 'count-0';
                 if(post.images && post.images.length > 0) {
                     profileImgHtml = `<div class="profile-img-container ${countClass}">`;
-                    post.images.forEach(img => { profileImgHtml += `<img class="profile-img-thumb" src="${img}">`; });
+                    post.images.forEach(img => { 
+                        // 💡 注入点击查看大图事件
+                        profileImgHtml += `<img class="profile-img-thumb" src="${img}" onclick="openImageViewer('${img}'); event.stopPropagation();">`; 
+                    });
                     profileImgHtml += `</div>`;
                 } else {
                     profileImgHtml = `<div class="profile-text-summary" style="width:65px; color:var(--text-sub); font-size:11px; display:flex; align-items:center; flex-shrink:0;">[纯文字]</div>`;
@@ -602,7 +642,7 @@
 
                 const row = document.createElement('div');
                 row.className = 'profile-row';
-                row.onclick = () => toggleRowExpand(row);
+                row.onclick = (e) => toggleRowExpand(row, e);
                 row.innerHTML = `
                     <div class="profile-date"><span>${post.day}</span>${post.month}</div>
                     <div class="profile-media-box">
@@ -628,14 +668,16 @@
 
         document.addEventListener('click', () => { menu.style.display = 'none'; closeAllActionPops(); });
 
-        function bindMenuItem(id, type) {
+        function bindMenuItem(id, actionFn) {
             const el = document.getElementById(id);
-            const action = (e) => { e.stopPropagation(); e.preventDefault(); menu.style.display = 'none'; openPublishModal(type); };
+            const action = (e) => { e.stopPropagation(); e.preventDefault(); menu.style.display = 'none'; actionFn(); };
             el.addEventListener('click', action);
             el.addEventListener('touchstart', action);
         }
-        bindMenuItem('itemPublishImage', 'image');
-        bindMenuItem('itemPublishText', 'text');
+        
+        bindMenuItem('itemPublishImage', () => openPublishModal('image'));
+        bindMenuItem('itemPublishText', () => openPublishModal('text'));
+        bindMenuItem('itemToggleBackup', () => toggleBackupPanel()); // 绑定管理面板显示按钮
 
         function openPublishModal(type) {
             currentPublishType = type;
